@@ -1,6 +1,35 @@
+// Set camera, scene, renderer as global variables - might need 
 var camera, scene, renderer;
-var geometry = new THREE.BoxGeometry(1,2,0.25)
-var geometry2 = new THREE.BoxGeometry(1,2,0.25)
+// Define beds
+var bedThickness = .25
+var numberOfBeds = 12
+
+// Define cube of clipping planes for block diagram
+var clipPlanes = [
+  new THREE.Plane( new THREE.Vector3( -1,  0,  0 ), 1 ),
+  new THREE.Plane( new THREE.Vector3( 0, -1,  0 ), 1 ),
+  new THREE.Plane( new THREE.Vector3( 0,  0, -1 ), 1 ),
+  new THREE.Plane( new THREE.Vector3( 1,  0,  0 ), 1 ),
+  new THREE.Plane( new THREE.Vector3( 0, 1,  0 ), 1 ),
+  new THREE.Plane( new THREE.Vector3( 0,  0, 1 ), 1 )
+];
+
+// Make group to put beds in
+var group = new THREE.Object3D();
+
+// Make beds
+for (var i = 0; i < numberOfBeds; i++) {
+  var geometry = new THREE.BoxGeometry(3, bedThickness, 3)
+  var material = new THREE.MeshPhongMaterial({
+          color: new THREE.Color( Math.sin( i * 0.5 ) * 0.5 + 0.5, Math.cos( i * 1.5 ) * 0.5 + 0.5, Math.sin( i * 4.5 + 0 ) * 0.5 + 0.5 ),
+          // side: THREE.DoubleSide,
+          clippingPlanes: clipPlanes,
+          clipIntersection: false})
+  var bed = new THREE.Mesh( geometry, material );
+  bed.position.y = -1*numberOfBeds*bedThickness/2 + bedThickness*i
+  group.add( bed )
+}
+
 
 // Create an event listener that resizes the renderer with the browser window.
 window.addEventListener('resize', function() {
@@ -49,40 +78,13 @@ function init () {
   light3.position.set(100,-100,-100);
   scene.add(light3);
 
-  var clipPlanes = [
-    new THREE.Plane( new THREE.Vector3( 1,  0,  0 ), 0 ),
-    new THREE.Plane( new THREE.Vector3( 0, -1,  0 ), 0 ),
-    new THREE.Plane( new THREE.Vector3( 0,  0, -1 ), 0 )
-  ];
-
-  // Make box and mesh to cover it
-  var material = new THREE.MeshLambertMaterial({color: 0x55B663,
-            side: THREE.DoubleSide,
-						clippingPlanes: clipPlanes,
-						clipIntersection: true})
-  var bed = new THREE.Mesh( geometry, material );
-
-  // Not sure if this should be a global variable
-  // var group = new THREE.Object3D();
-  // group.add( bed )
-
-  // Make clipping planes
-  var clipPlanes = [
-    new THREE.Plane( new THREE.Vector3( 1,  0,  0 ), 1 ),
-    // new THREE.Plane( new THREE.Vector3( 0, -1,  0 ), 1 ),
-    // new THREE.Plane( new THREE.Vector3( 0,  0, -1 ), 1 ),
-    // new THREE.Plane( new THREE.Vector3( 1,  0,  0 ), -1 ),
-    // new THREE.Plane( new THREE.Vector3( 0, -1,  0 ), -1 ),
-    // new THREE.Plane( new THREE.Vector3( 0,  0, -1 ), -1 )
-  ];
-
   // Strike
-  bed.rotation.y = Math.PI/180 * 45
+  group.rotation.y = Math.PI/180 * 45
   //Dip
-  bed.rotation.x = Math.PI/180 * 80
+  group.rotation.x = Math.PI/180 * 10
 
-  bed.rotation.order = "YXZ"
-  scene.add( bed );
+  group.rotation.order = "YXZ"
+  scene.add( group );
 
   // Add OrbitControls so that we can pan around with the mouse. 
   controls = new THREE.OrbitControls(camera, renderer.domElement);

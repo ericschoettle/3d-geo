@@ -1,21 +1,40 @@
 # Questions:
-  * How do I make a function "bed geometry"?
   * Two approaches: 
     * Grab the faces from the block diagram object, find the intersection with beds, run it by my own calculations. Or built in intersection finders.
     * OR, aproach it through visualization - make one transparent, etc. 
   * Stepping back, let's look at how bock geometries are defined, to see if I can create my own trapezoidal version - or if the intersections thing works, (how do I color the faces? Maybe build a plane geometry using the bounding lines?), how I can extract things like edges and faces? 
-  * How do I tie the geometry to the strike and dip symbol?
-  * How do I extract the numbers for the strike and dip? 
-  * How do I build object manipulation in? That is, how do I build controls to rotate the beds? examples/js/controls for reference. 
+  * How do I make the strike and dip symbol appear on the surface of the bed?
+  * Do I change bed geometry with inputs or dragging? MVP: inputs, later: dragging. Actually either - it would be cool if it snapped to a strike and dip that you specified or you could drag it. Perhaps hold a key down and click to manipulate the camera, no key moves the beds?
+    * If I'm doing this approach, how do I extract the strike and dip from the plane? Can I force the rotations to be only of strike and dip type, or do a little math?
 
-* Geometries to look at - Box geometry, geometries, edges geometry, polyhedron geometry, shapegeometry, wireframe geometry
 
 # To do list - 
-  * Add edges
+  * Add edges - make a copy of the object/group and run it with "wireframe: true"
   * Add lighting --DONE
   * Add controls for perspective --DONE
-  * Split JS files into scene, object, etc. Wrap everything in a function and then call it. 
-  * Put it into angular or ruby. 
+  * Split JS files into scene, object, etc. Wrap everything in a function and then call it. DONE
+
+  * Perform rotation and slicing:
+    * Make clipping shape into a box
+    * Find intersections of clipping plane and beds
+    * Make new geometry out of resulting shapes (preferably grabbing colors from original shapes)
+  
+  * Add strike and dip symbol to the top bed (and map view)
+    * Find face of top bed, locate center
+    * Make an image that I can put on an otherwise transparent plane
+    * Orient with strike and dip - either logic from arbitrary position or (better) only allow plane to be rotated according to the rules of strike and dip.
+    * Add text with a maintained orientation - how to position it on the page? 
+  
+  * Add cross section and map views
+  * STRETCH = Add compass rose/axes arrows in another (transparent) scene, be careful about rotations. 
+
+  * Add logic for quadrants vs 360 degree approach
+  * Add UI box with inputs for strike and dip, locks for either (if rotating manually), show/hide for strike and dip, etc. 
+  
+  * STRETCH - Add compass that sits flat (stretch: user can click on compass to rotate it two ways against surface, changes color when flat)
+  * STRETCH - add ability to use compass on underside of rock
+  * STRETCH - add overturned symbol and application
+
   
 # Useful resources
 
