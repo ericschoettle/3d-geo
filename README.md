@@ -55,3 +55,13 @@ Rotations are performed with respect to the oject's internal coordinate system -
 
 wireframe: true will give it a wire frame!!! (or only a wire frame?)
 check out flat vs true shading, MeshPhongMaterial vs MeshLambertMaterial
+
+
+OK, so plan for edges: 
+
+* For loop testing top face against all lines - push to points
+* For loop testing bottom face against all lines - push to points
+* Points - group into sets of those on the same plane - test if the points have the same value (one or -1) in the x, y, or z direction
+* Make faces: if four points, find two opposite corners (larger on one axis, smaller on the other axis). Use those twice, and use the other two points once with the two repeated points to make triangular. 
+* Make object out of those faces with the same color as the bed. 
+* Text if box contains corner? That would be useful. 
