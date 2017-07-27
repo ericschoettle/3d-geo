@@ -115,7 +115,6 @@ function init () {
 
 function animate() {
   requestAnimationFrame( animate );
-
   renderer.render( scene, camera );
 }
 
@@ -165,6 +164,7 @@ function makeLinesFromVertices() {
 
 
 function makeSides() {
+  var sidesGroup = new THREE.Object3D();
   makeLinesFromVertices();
   //Loop through each bed
   for (var i = 0; i < group.children.length; i++) {
@@ -205,9 +205,10 @@ function makeSides() {
     }
     if (sidesRing.faces) {
       ring = new THREE.Mesh( sidesRing, group.children[i].material );
-      scene.add(ring)
+      sidesGroup.add(ring)
     }
   }
+  scene.add(ring)
 }
 
 function planeFromObject(object, faceNumber) {
