@@ -1,5 +1,5 @@
 // Set camera, scene, renderer as global variables - might need 
-var camera, scene, renderer;
+var scene = new THREE.Scene();
 // Define beds
 var bedThickness = .25
 var numberOfBeds = 10
@@ -59,9 +59,6 @@ init();
 animate();
 
 function init () {
-  // Set up a scene as a global variable
-  scene = new THREE.Scene();
-
   // Move camera away from box
   camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
@@ -101,6 +98,8 @@ function init () {
 
   group.rotation.order = "YXZ"
   scene.add( group );
+
+  makeSides()
 
   // for (var i = 0; i < group.children.length; i++) {
   //   var object = group.children[i];
@@ -164,7 +163,7 @@ function makeLinesFromVertices() {
   }
 }
 
-makeSides()
+
 function makeSides() {
   makeLinesFromVertices();
   //Loop through each bed
@@ -183,12 +182,11 @@ function makeSides() {
       var bottomPointOfIntersection = bottomPlane.intersectLine(yAxisBoundingLines[j]);
 
       if (topPointOfIntersection) {
-        var index = sidesRing.vertices.push(topPointOfIntersection.clone());
+        var index = sidesRing.vertices.push(topPointOfIntersection.clone()) - 1;//for some indecipherable reason, when you push to vertices, the function returns the index, plus one. 
         topPointsIndexArray.push(index)
-
       };
       if (bottomPointOfIntersection) {
-        var index = sidesRing.vertices.push(bottomPointOfIntersection.clone());
+        var index = sidesRing.vertices.push(bottomPointOfIntersection.clone())-1;//for some indecipherable reason, when you push to vertices, the function returns the index, plus one. 
         bottomPointsIndexArray.push(index)
       };
     }
@@ -199,16 +197,16 @@ function makeSides() {
           if ((sidesRing.vertices[topPointsIndexArray[j]].x == sidesRing.vertices[topPointsIndexArray[k]].x) || (sidesRing.vertices[topPointsIndexArray[j]].z == sidesRing.vertices[topPointsIndexArray[k]].z) ) { // if two point are adjacent
             var face1 = new THREE.Face3( sidesRing.vertices[topPointsIndexArray[j]], sidesRing.vertices[topPointsIndexArray[k]], sidesRing.vertices[bottomPointsIndexArray[j]] ) // make face with two points on the top
             var face2 = new THREE.Face3( sidesRing.vertices[bottomPointsIndexArray[j]], sidesRing.vertices[bottomPointsIndexArray[k]], sidesRing.vertices[topPointsIndexArray[k]] )  // make face with two points on the bottom
-            debugger
             sidesRing.faces.push(face1)
             sidesRing.faces.push(face2)
           }
         }
       }
     }
-    
-    ring = new THREE.Mesh( sidesRing, group.children[i].material );
-    scene.add(ring)
+    if (sidesRing.faces) {
+      ring = new THREE.Mesh( sidesRing, group.children[i].material );
+      scene.add(ring)
+    }
   }
 }
 
@@ -225,30 +223,3 @@ function planeFromObject(object, faceNumber) {
   return mathPlane
 }
 
-// function drawIntersectionPoints(object, plane) {
-//   object.geometry.faces.forEach(function(face) {
-//     object.localToWorld(a.copy(object.geometry.vertices[face.a]));
-//     object.localToWorld(b.copy(object.geometry.vertices[face.b]));
-//     object.localToWorld(c.copy(object.geometry.vertices[face.c]));
-//     lineAB = new THREE.Line3(a, b);
-//     lineBC = new THREE.Line3(b, c);
-//     lineCA = new THREE.Line3(c, a);
-//     setPointOfIntersection(lineAB, plane);
-//     setPointOfIntersection(lineBC, plane);
-//     setPointOfIntersection(lineCA, plane);
-//   });
-
-//   var pointsMaterial = new THREE.PointsMaterial({
-//     size: .05,
-//     color: 0xffff00
-//     // color: object.material.color
-//   });
-
-//   var points = new THREE.Points(pointsOfIntersection, pointsMaterial);
-//   scene.add(points);
-
-//   var lines = new THREE.LineSegments(pointsOfIntersection, new THREE.LineBasicMaterial({
-//     color: 0xffffff
-//   }));
-//   scene.add(lines);
-// }
