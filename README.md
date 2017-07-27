@@ -7,6 +7,8 @@
   * Do I change bed geometry with inputs or dragging? MVP: inputs, later: dragging. Actually either - it would be cool if it snapped to a strike and dip that you specified or you could drag it. Perhaps hold a key down and click to manipulate the camera, no key moves the beds?
     * If I'm doing this approach, how do I extract the strike and dip from the plane? Can I force the rotations to be only of strike and dip type, or do a little math?
 
+  * Would extrude and a sine wave give me folded beds?
+
 
 # To do list - 
   * Add edges - make a copy of the object/group and run it with "wireframe: true"

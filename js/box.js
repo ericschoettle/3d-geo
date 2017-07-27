@@ -4,10 +4,6 @@ var camera, scene, renderer;
 var bedThickness = .25
 var numberOfBeds = 10
 
-
-// define variables for points of intersection calculations
-var pointsOfIntersection = new THREE.Geometry();
-
 var a = new THREE.Vector3(),
   b = new THREE.Vector3(),
   c = new THREE.Vector3();
@@ -29,6 +25,9 @@ var clipPlanes = [
   new THREE.Plane( new THREE.Vector3( 0,  0, 1 ), 1 )
 ];
 
+var xAxisBoundingLines = [];
+var yAxisBoundingLines = [];
+var zAxisBoundingLines = [];
 
 // Make group to put beds in
 var group = new THREE.Object3D();
@@ -95,10 +94,10 @@ function init () {
   scene.add(light3);
 
   // Strike
-  group.rotation.y = Math.PI/180 * 20
+  group.rotation.y = Math.PI/180 * 0
 
   //Dip
-  group.rotation.x = Math.PI/180 * 80
+  group.rotation.x = Math.PI/180 * 0
 
   group.rotation.order = "YXZ"
   scene.add( group );
@@ -150,32 +149,81 @@ function generateClipVertices() {
 }
 
 function makeLinesFromVertices() {
-  var lines = []
   var clipVertices = generateClipVertices()
-  var vertices = clipVertices.vertices
+  var vertices = clipVertices.vertices;
   for (var i = 0; i < vertices.length; i++) {
     for (var j = i+1; j < vertices.length; j++) {
-      if ((vertices[i].x == vertices[j].x && vertices[i].y == vertices[j].y) || ( vertices[i].x == vertices[j].x && vertices[i].z == vertices[j].z) || ( vertices[i].y == vertices[j].y && vertices[i].z == vertices[j].z)) {
-        lines.push(new THREE.Line3(vertices[i],vertices[j]))
-      } 
+      if (vertices[i].x == vertices[j].x && vertices[i].y == vertices[j].y) {
+        zAxisBoundingLines.push(new THREE.Line3(vertices[i],vertices[j]))
+      } else if (vertices[i].x == vertices[j].x && vertices[i].z == vertices[j].z) {
+        yAxisBoundingLines.push(new THREE.Line3(vertices[i],vertices[j]))
+      } else if (vertices[i].y == vertices[j].y && vertices[i].z == vertices[j].z) {
+        xAxisBoundingLines.push(new THREE.Line3(vertices[i],vertices[j]))
+      }
     }
   }
-  return lines
-}
-findIntersectionPoints()
-function findIntersectionPoints() {
-  lines = makeLinesFromVertices()
-  for (var i = 0; i < group.children.length; i++) {
-    var bed = group.children[i];
-    bed.geometry.faces[1]
-    
-  }
-  // for (var i = 0; i < lines.length; i++) {
-  //   var element = array[i];
-    
-  // }
 }
 
+makeSides()
+function makeSides() {
+  makeLinesFromVertices();
+  //Loop through each bed
+  for (var i = 0; i < group.children.length; i++) {
+    //Set variables
+    var bed = group.children[i]; 
+    var topPlane = planeFromObject(bed, 4); //5 also a top face
+    var bottomPlane = planeFromObject(bed, 6); //7 also a bottom face.
+    var topPointsIndexArray = []
+    var bottomPointsIndexArray = []
+    var sidesRing = new THREE.Geometry()
+    //Gather points of intersection
+    for (var j = 0; j < yAxisBoundingLines.length; j++) {
+      var verticalSides = new THREE.Geometry();
+      var topPointOfIntersection = topPlane.intersectLine(yAxisBoundingLines[j]);
+      var bottomPointOfIntersection = bottomPlane.intersectLine(yAxisBoundingLines[j]);
+
+      if (topPointOfIntersection) {
+        var index = sidesRing.vertices.push(topPointOfIntersection.clone());
+        topPointsIndexArray.push(index)
+
+      };
+      if (bottomPointOfIntersection) {
+        var index = sidesRing.vertices.push(bottomPointOfIntersection.clone());
+        bottomPointsIndexArray.push(index)
+      };
+    }
+    // loop through comparing vertices and make sides
+    if (topPointsIndexArray.length == 4 && bottomPointsIndexArray.length == 4) {
+      for (var j = 0; j < topPointsIndexArray.length; j++) {
+        for (var k = j + 1; k < topPointsIndexArray.length; k++) {
+          if ((sidesRing.vertices[topPointsIndexArray[j]].x == sidesRing.vertices[topPointsIndexArray[k]].x) || (sidesRing.vertices[topPointsIndexArray[j]].z == sidesRing.vertices[topPointsIndexArray[k]].z) ) { // if two point are adjacent
+            var face1 = new THREE.Face3( sidesRing.vertices[topPointsIndexArray[j]], sidesRing.vertices[topPointsIndexArray[k]], sidesRing.vertices[bottomPointsIndexArray[j]] ) // make face with two points on the top
+            var face2 = new THREE.Face3( sidesRing.vertices[bottomPointsIndexArray[j]], sidesRing.vertices[bottomPointsIndexArray[k]], sidesRing.vertices[topPointsIndexArray[k]] )  // make face with two points on the bottom
+            debugger
+            sidesRing.faces.push(face1)
+            sidesRing.faces.push(face2)
+          }
+        }
+      }
+    }
+    
+    ring = new THREE.Mesh( sidesRing, group.children[i].material );
+    scene.add(ring)
+  }
+}
+
+function planeFromObject(object, faceNumber) {
+  var objectPointA = new THREE.Vector3(),
+    objectPointB = new THREE.Vector3(),
+    objectPointC = new THREE.Vector3();
+
+  var mathPlane = new THREE.Plane();
+  object.localToWorld(objectPointA.copy(object.geometry.vertices[object.geometry.faces[faceNumber].a]));
+  object.localToWorld(objectPointB.copy(object.geometry.vertices[object.geometry.faces[faceNumber].b]));
+  object.localToWorld(objectPointC.copy(object.geometry.vertices[object.geometry.faces[faceNumber].c]));
+  mathPlane.setFromCoplanarPoints(objectPointA, objectPointB, objectPointC);
+  return mathPlane
+}
 
 // function drawIntersectionPoints(object, plane) {
 //   object.geometry.faces.forEach(function(face) {
@@ -204,10 +252,3 @@ function findIntersectionPoints() {
 //   }));
 //   scene.add(lines);
 // }
-
-function setPointOfIntersection(line, plane) {
-  pointOfIntersection = plane.intersectLine(line);
-  if (pointOfIntersection) {
-    pointsOfIntersection.vertices.push(pointOfIntersection.clone());
-  };
-}
