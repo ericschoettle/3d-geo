@@ -1,8 +1,10 @@
-// Set camera, scene, renderer as global variables - might need 
+// Set camera, scene, renderer as global variables - might need
 var scene = new THREE.Scene();
 // Define beds
 var bedThickness = .25
 var numberOfBeds = 10
+var strike = 120
+var dip = 45
 
 var a = new THREE.Vector3(),
   b = new THREE.Vector3(),
@@ -50,7 +52,7 @@ for (var i = 0; i < numberOfBeds; i++) {
 window.addEventListener('resize', function() {
   var WIDTH = window.innerWidth,
       HEIGHT = window.innerHeight;
-  renderer.setSize(WIDTH, HEIGHT);
+  renderer.setSize(WIDTH*2/3, HEIGHT*2/3);
   camera.aspect = WIDTH / HEIGHT;
   camera.updateProjectionMatrix();
 });
@@ -91,25 +93,31 @@ function init () {
   scene.add(light3);
 
   // Strike
-  group.rotation.y = Math.PI/180 * 0
+  group.rotation.y = Math.PI/180 * strike
 
   //Dip
-  group.rotation.x = Math.PI/180 * 0
+  group.rotation.x = Math.PI/180 * dip
 
   group.rotation.order = "YXZ"
   scene.add( group );
 
   makeSides()
 
-  // for (var i = 0; i < group.children.length; i++) {
-  //   var object = group.children[i];
-  //   for (var j = 0; j < clipPlanes.length; j++) {
-  //     var plane = clipPlanes[j];
-  //     drawIntersectionPoints(object, plane)
-  //   }
-  // }
+  // GUI
+  var gui = new dat.GUI(),
+    folderLocal = gui.addFolder( 'Strike and Dip' )
+    props = {
+  						get 'Strike'() { return group.rotation.y*180/Math.PI; },
+  						set 'Strike'( v ) { group.rotation.y = v*Math.PI/180},
 
-  // Add OrbitControls so that we can pan around with the mouse. 
+              get 'Dip'() { return group.rotation.x*180/Math.PI; },
+  						set 'Dip'( v ) { group.rotation.x = v*Math.PI/180 }
+  					};
+
+    folderLocal.add( props, 'Strike', 0, 360 );
+    folderLocal.add( props, 'Dip', 0, 90 );
+
+  // Add OrbitControls so that we can pan around with the mouse.
   controls = new THREE.OrbitControls(camera, renderer.domElement);
 }
 
@@ -118,20 +126,6 @@ function animate() {
   renderer.render( scene, camera );
 }
 
-// drawClipVertices()
-// function drawClipVertices() {
-//   var clipVertices = generateClipVertices()
-
-//   var pointsMaterial = new THREE.PointsMaterial({
-//     size: .05,
-//     color: 0xffff00
-//     // color: object.material.color
-//   });
-
-//   var points = new THREE.Points(clipVertices, pointsMaterial);
-//   console.log(points)
-//   scene.add(points);
-// }
 
 function generateClipVertices() {
   var clipVertices = new THREE.Geometry()
@@ -141,7 +135,7 @@ function generateClipVertices() {
         var n = new THREE.Vector3(i,j,k)
         clipVertices.vertices.push(n.clone())
       }
-    } 
+    }
   }
   return clipVertices
 }
@@ -169,7 +163,7 @@ function makeSides() {
   //Loop through each bed
   for (var i = 0; i < group.children.length; i++) {
     //Set variables
-    var bed = group.children[i]; 
+    var bed = group.children[i];
     var topPlane = planeFromObject(bed, 4); //5 also a top face
     var bottomPlane = planeFromObject(bed, 6); //7 also a bottom face.
     var topPointsIndexArray = []
@@ -182,11 +176,11 @@ function makeSides() {
       var bottomPointOfIntersection = bottomPlane.intersectLine(yAxisBoundingLines[j]);
 
       if (topPointOfIntersection) {
-        var index = sidesRing.vertices.push(topPointOfIntersection.clone()) - 1;//for some indecipherable reason, when you push to vertices, the function returns the index, plus one. 
+        var index = sidesRing.vertices.push(topPointOfIntersection.clone()) - 1;//for some indecipherable reason, when you push to vertices, the function returns the index, plus one.
         topPointsIndexArray.push(index)
       };
       if (bottomPointOfIntersection) {
-        var index = sidesRing.vertices.push(bottomPointOfIntersection.clone())-1;//for some indecipherable reason, when you push to vertices, the function returns the index, plus one. 
+        var index = sidesRing.vertices.push(bottomPointOfIntersection.clone())-1;//for some indecipherable reason, when you push to vertices, the function returns the index, plus one.
         bottomPointsIndexArray.push(index)
       };
     }
@@ -223,4 +217,3 @@ function planeFromObject(object, faceNumber) {
   mathPlane.setFromCoplanarPoints(objectPointA, objectPointB, objectPointC);
   return mathPlane
 }
-
