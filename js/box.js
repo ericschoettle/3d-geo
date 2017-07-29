@@ -1,10 +1,12 @@
-// Set camera, scene, renderer as global variables - might need
+// Set camera, scene, orbitRenderer as global variables - might need
 var scene = new THREE.Scene();
+var orbitRenderer = new THREE.WebGLRenderer();
+var mapRenderer = new THREE.WebGLRenderer();
 // Define beds
 var bedThickness = .25
 var numberOfBeds = 10
-var strike = 120
-var dip = 45
+var strike = 60
+var dip = 30
 
 var a = new THREE.Vector3(),
   b = new THREE.Vector3(),
@@ -27,9 +29,9 @@ var clipPlanes = [
   new THREE.Plane( new THREE.Vector3( 0,  0, 1 ), 1 )
 ];
 
-var xAxisBoundingLines = [];
-var yAxisBoundingLines = [];
-var zAxisBoundingLines = [];
+var xAxisBoundingLines = [],
+  yAxisBoundingLines = [],
+  zAxisBoundingLines = [];
 
 // Make group to put beds in
 var group = new THREE.Object3D();
@@ -48,11 +50,11 @@ for (var i = 0; i < numberOfBeds; i++) {
 }
 
 
-// Create an event listener that resizes the renderer with the browser window.
+// Create an event listener that resizes the orbitRenderer with the browser window.
 window.addEventListener('resize', function() {
   var WIDTH = window.innerWidth,
       HEIGHT = window.innerHeight;
-  renderer.setSize(WIDTH*2/3, HEIGHT*2/3);
+  orbitRenderer.setSize(WIDTH, HEIGHT);
   camera.aspect = WIDTH / HEIGHT;
   camera.updateProjectionMatrix();
 });
@@ -62,22 +64,25 @@ animate();
 
 function init () {
   // Move camera away from box
-  camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+  orbitCamera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
-  camera.position.z = 4;
-  camera.position.y = 1;
+  orbitCamera.position.x = 2;
+  orbitCamera.position.y = 2;
+  orbitCamera.position.z = 5;
+
+  orbitCamera.lookAt( scene.position );
 
   // render the secene in HTML and insert it into the DOM
-  renderer = new THREE.WebGLRenderer();
-  renderer.setSize( window.innerWidth, window.innerHeight );
-  renderer.antialias = true;
-  renderer.setClearColor( 0x222222 );
-  renderer.localClippingEnabled = true;
 
-  document.body.appendChild( renderer.domElement );
+  orbitRenderer.setSize( window.innerWidth*2/3, window.innerHeight*2/3 );
+  orbitRenderer.antialias = true;
+  orbitRenderer.setClearColor( 0x222222 );
+  orbitRenderer.localClippingEnabled = true;
+
+  $(".block-diagram").html( orbitRenderer.domElement );
 
   // Set the background color of the scene.
-  // renderer.setClearColorHex(0x333F47, 1);
+  // orbitRenderer.setClearColorHex(0x333F47, 1);
 
   // Create a light, set its position, and add it to the scene.
   var light = new THREE.PointLight(0xffffff, 1, 0, 2);
@@ -118,12 +123,12 @@ function init () {
     folderLocal.add( props, 'Dip', 0, 90 );
 
   // Add OrbitControls so that we can pan around with the mouse.
-  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls = new THREE.OrbitControls(orbitCamera, orbitRenderer.domElement);
 }
 
 function animate() {
   requestAnimationFrame( animate );
-  renderer.render( scene, camera );
+  orbitRenderer.render( scene, orbitCamera );
 }
 
 
