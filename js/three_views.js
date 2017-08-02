@@ -47,6 +47,10 @@ var clipPlanes = [
   new THREE.Plane( new THREE.Vector3( 0,  0, 1 ), 1 )
 ];
 
+var xAxisBoundingLines = [],
+  yAxisBoundingLines = [],
+  zAxisBoundingLines = [];
+
 var group = new THREE.Object3D();
 
 // Make beds
@@ -54,6 +58,7 @@ for (var i = 0; i < numberOfBeds; i++) {
   var geometry = new THREE.BoxGeometry(4, bedThickness, 4)
   var material = new THREE.MeshPhongMaterial({
           color: new THREE.Color( Math.sin( i * 0.5 ) * 0.5 + 0.5, Math.cos( i * 1.5 ) * 0.5 + 0.5, Math.sin( i * 4.5 + 0 ) * 0.5 + 0.5 ),
+          // side: THREE.DoubleSide,
           clippingPlanes: clipPlanes,
           clipIntersection: false
         })
@@ -90,16 +95,20 @@ function init() {
   canvas.height = 128;
   var context = canvas.getContext( '2d' );
 
-  var materials = [
-    new THREE.MeshPhongMaterial( { color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors, shininess: 0 } ),
-    new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true, transparent: true } )
-  ];
+  // make wireframe
+  // var materials = [
+  //   new THREE.MeshPhongMaterial( { color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors, shininess: 0 } ),
+  //   new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true, transparent: true } )
+  // ];
+
   // Strike
   group.rotation.y = Math.PI/180 * strike
   //Dip
   group.rotation.x = Math.PI/180 * dip
   group.rotation.order = "YXZ"
   scene.add(group)
+
+  makeSides();
 
   renderer = new THREE.WebGLRenderer( { antialias: true, localClippingEnabled: true } );
   renderer.setPixelRatio( window.devicePixelRatio );
@@ -108,7 +117,6 @@ function init() {
 
   var text1 = document.createElement('div');
   text1.style.position = 'absolute';
-  //text1.style.zIndex = 1;    // if you still don't see the label, try uncommenting this
   text1.style.width = 100;
   text1.style.height = 100;
   text1.style.color = "white";
@@ -119,7 +127,6 @@ function init() {
 
   var text2 = document.createElement('div');
   text2.style.position = 'absolute';
-  //text2.style.zIndex = 1;    // if you still don't see the label, try uncommenting this
   text2.style.width = 100;
   text2.style.height = 100;
   text2.style.color = "white";
@@ -130,7 +137,6 @@ function init() {
 
   var text3 = document.createElement('div');
   text3.style.position = 'absolute';
-  //text3.style.zIndex = 1;    // if you still don't see the label, try uncommenting this
   text3.style.width = 100;
   text3.style.height = 100;
   text3.style.color = "white";
@@ -175,6 +181,8 @@ function render() {
   }
 }
 
+
+// make GUI
 var gui = new dat.GUI(),
   folderLocal = gui.addFolder( 'Strike and Dip' )
   props = {
@@ -187,3 +195,97 @@ var gui = new dat.GUI(),
 
   folderLocal.add( props, 'Strike', 0, 360 );
   folderLocal.add( props, 'Dip', 0, 90 );
+
+function makeSides() {
+  // var sidesGroup = new THREE.Object3D();
+  makeLinesFromVertices();
+  //Loop through each bed
+  for (var i = 0; i < group.children.length; i++) {
+    //Set variables
+    var bed = group.children[i];
+    var topPlane = planeFromObject(bed, 4); //5 also a top face
+    var bottomPlane = planeFromObject(bed, 6); //7 also a bottom face.
+    var topPointsIndexArray = []
+    var bottomPointsIndexArray = []
+    var sidesRing = new THREE.Geometry()
+    //Gather points of intersection
+    for (var j = 0; j < yAxisBoundingLines.length; j++) {
+      var verticalSides = new THREE.Geometry();
+      var topPointOfIntersection = topPlane.intersectLine(yAxisBoundingLines[j]);
+      var bottomPointOfIntersection = bottomPlane.intersectLine(yAxisBoundingLines[j]);
+
+      if (topPointOfIntersection) {
+        var index = sidesRing.vertices.push(topPointOfIntersection.clone()) - 1;//for some indecipherable reason, when you push to vertices, the function returns the index, plus one.
+        topPointsIndexArray.push(index)
+      };
+      if (bottomPointOfIntersection) {
+        var index = sidesRing.vertices.push(bottomPointOfIntersection.clone())-1;//for some indecipherable reason, when you push to vertices, the function returns the index, plus one.
+        bottomPointsIndexArray.push(index)
+      };
+    }
+    // loop through comparing vertices and make sides
+    if (topPointsIndexArray.length == 4 && bottomPointsIndexArray.length == 4) {
+      for (var j = 0; j < topPointsIndexArray.length; j++) {
+        for (var k = j + 1; k < topPointsIndexArray.length; k++) {
+          if ((sidesRing.vertices[topPointsIndexArray[j]].x == sidesRing.vertices[topPointsIndexArray[k]].x) || (sidesRing.vertices[topPointsIndexArray[j]].z == sidesRing.vertices[topPointsIndexArray[k]].z) ) { // if two point are adjacent
+            var normal = new THREE.Vector3( 0, 0, 1 )
+            var face1 = new THREE.Face3( topPointsIndexArray[j], topPointsIndexArray[k], bottomPointsIndexArray[j], normal ) // make face with two points on the top
+            var face2 = new THREE.Face3( bottomPointsIndexArray[j], bottomPointsIndexArray[k], topPointsIndexArray[k], normal ) // make face with two points on the bottom
+            sidesRing.faces.push(face1)
+            sidesRing.faces.push(face2)
+          }
+        }
+      }
+    }
+    if (sidesRing.faces) {
+      ring = new THREE.Mesh( sidesRing, group.children[i].material );
+      scene.add(ring)
+    }
+  }
+  // debugger
+}
+
+function generateClipVertices() {
+  var clipVertices = new THREE.Geometry()
+  for (var i = -1; i < 2; i += 2) {
+    for (var j = -1; j < 2; j += 2) {
+      for (var k = -1; k < 2; k += 2) {
+        var n = new THREE.Vector3(i,j,k)
+        clipVertices.vertices.push(n.clone())
+      }
+    }
+  }
+  return clipVertices
+}
+
+function makeLinesFromVertices() {
+  var clipVertices = generateClipVertices()
+  var vertices = clipVertices.vertices;
+  for (var i = 0; i < vertices.length; i++) {
+    for (var j = i+1; j < vertices.length; j++) {
+      if (vertices[i].x == vertices[j].x && vertices[i].y == vertices[j].y) {
+        zAxisBoundingLines.push(new THREE.Line3(vertices[i],vertices[j]))
+      } else if (vertices[i].x == vertices[j].x && vertices[i].z == vertices[j].z) {
+        yAxisBoundingLines.push(new THREE.Line3(vertices[i],vertices[j]))
+      } else if (vertices[i].y == vertices[j].y && vertices[i].z == vertices[j].z) {
+        xAxisBoundingLines.push(new THREE.Line3(vertices[i],vertices[j]))
+      }
+    }
+  }
+}
+
+
+
+
+function planeFromObject(object, faceNumber) {
+  var objectPointA = new THREE.Vector3(),
+    objectPointB = new THREE.Vector3(),
+    objectPointC = new THREE.Vector3();
+
+  var mathPlane = new THREE.Plane();
+  object.localToWorld(objectPointA.copy(object.geometry.vertices[object.geometry.faces[faceNumber].a]));
+  object.localToWorld(objectPointB.copy(object.geometry.vertices[object.geometry.faces[faceNumber].b]));
+  object.localToWorld(objectPointC.copy(object.geometry.vertices[object.geometry.faces[faceNumber].c]));
+  mathPlane.setFromCoplanarPoints(objectPointA, objectPointB, objectPointC);
+  return mathPlane
+}

@@ -1,25 +1,33 @@
-# Questions:
-  * Can I make rotations of only strike and dip possible, and executed by mouse?
-    * Can I apply those only to the compass object?
+# For you:
 
-  * Would extrude and a sine wave give me folded beds?
+  Check it out! = ericschoettle.github.io/3d-geo/
+
+  This is an app to help visualize strike and dip, the standard way that geologists record the orientation of planes in space. Use the controls on the right to play around!
 
 
-# To do list -
 
+# For me:
+
+  * Page layout
+    * Take controls out of folder
+    * Use real fonts
+    * Make sizes dynamic but with fixed aspect ratio. Should I base on width or height?
+    * Add north arrows
+    * Indicate where cross section is?
 
   * Add strike and dip symbol to the top bed (and map view)
-    * Find face of top bed, locate center
-    * Make an image that I can put on an otherwise transparent plane
-    * Orient with strike and dip - either logic from arbitrary position or (better) only allow plane to be rotated according to the rules of strike and dip.
-    * Add text with a maintained orientation - how to position it on the page?
+    * Add symbol and rotate with strike
+    * Add text with dynamically updated dip
+    * Advanced: Move text in a circle based on dip
+    * Advanced: Move symbol to the middle of a bed. Or perhaps a random spot on the diagram?
 
-  * Add cross section and map views DONE -
-    * Get them to display simultaneously
-  * STRETCH = Add compass rose/axes arrows in another (transparent) scene, be careful about rotations.
+  * Add logic for quadrants vs azimuth
 
-  * Add logic for quadrants vs 360 degree approach
-  * Fix UI box
+  * Adding sides
+    * Do I need to put in a normal?
+    * Is there another reason the sides wouldn't be displaying?
+    * Figure out how to deal with top and bottom - do I want to force it into a cube, or pick a plane to have it cut on?
+    * Add wireframe
 
   * STRETCH - Add compass that sits flat (stretch: user can click on compass to rotate it two ways against surface, changes color when flat)
   * STRETCH - add ability to use compass on underside of rock
@@ -45,13 +53,3 @@ Rotations are performed with respect to the oject's internal coordinate system -
 
 wireframe: true will give it a wire frame!!! (or only a wire frame?)
 check out flat vs true shading, MeshPhongMaterial vs MeshLambertMaterial
-
-
-OK, so plan for edges:
-
-* For loop testing top face against all lines - push to points
-* For loop testing bottom face against all lines - push to points
-* Points - group into sets of those on the same plane - test if the points have the same value (one or -1) in the x, y, or z direction
-* Make faces: if four points, find two opposite corners (larger on one axis, smaller on the other axis). Use those twice, and use the other two points once with the two repeated points to make triangular.
-* Make object out of those faces with the same color as the bed.
-* Text if box contains corner? That would be useful.
