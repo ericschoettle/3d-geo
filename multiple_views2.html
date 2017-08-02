@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>three.js webgl - multiple views</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<style>
@@ -27,164 +26,10 @@
 	<body>
 
 		<div id="container"></div>
-		<div id="info"><a href="http://threejs.org" target="_blank" rel="noopener">three.js</a> - multiple views - webgl</div>
 
 		<script src="js/three.min.js"></script>
 		<script src="js/dat.gui.js"></script>
 		<script src="js/controls/OrbitControls.js"></script>
-		<script>
-			var strike = 60
-			var dip = 30
-
-			var bedThickness = .25
-			var numberOfBeds = 10
-
-			var container
-			var views, scene, renderer;
-			var mesh, group, light;
-			var mouseX = 0, mouseY = 0;
-			var windowWidth, windowHeight;
-			var views = [
-				{
-					left: 0,
-					top: 0,
-					width: 0.5,
-					height: 1.0,
-					background: new THREE.Color().setRGB( 0.5, 0.5, 0.7 ),
-					camera: new THREE.PerspectiveCamera( 45 , window.innerWidth / window.innerHeight, 0.1, 1000 ),
-					cameraPosition: [ 2, 2, 5 ]
-				},
-				{
-					left: 0.5,
-					top: 0.5,
-					width: 0.5,
-					height: 0.5,
-					background: new THREE.Color().setRGB( 0.7, 0.5, 0.5 ),
-					camera: new THREE.OrthographicCamera( -1, 1, 1, -1, -500, 1000 ),
-					cameraPosition: [ 0, 0, 5 ]
-				},
-				{
-					left: 0.5,
-					top: 0,
-					width: 0.5,
-					height: 0.5,
-					background: new THREE.Color().setRGB( 0.5, 0.7, 0.7 ),
-					camera: new THREE.OrthographicCamera( -1, 1, 1, -1, -500, 1000 ),
-					cameraPosition: [ 0, 5, 0 ]
-				}
-			];
-
-			var clipPlanes = [
-			  new THREE.Plane( new THREE.Vector3( -1,  0,  0 ), 1 ),
-			  new THREE.Plane( new THREE.Vector3( 0, -1,  0 ), 1 ),
-			  new THREE.Plane( new THREE.Vector3( 0,  0, -1 ), 1 ),
-			  new THREE.Plane( new THREE.Vector3( 1,  0,  0 ), 1 ),
-			  new THREE.Plane( new THREE.Vector3( 0, 1,  0 ), 1 ),
-			  new THREE.Plane( new THREE.Vector3( 0,  0, 1 ), 1 )
-			];
-
-			var group = new THREE.Object3D();
-
-			// Make beds
-			for (var i = 0; i < numberOfBeds; i++) {
-				var geometry = new THREE.BoxGeometry(4, bedThickness, 4)
-				var material = new THREE.MeshPhongMaterial({
-								color: new THREE.Color( Math.sin( i * 0.5 ) * 0.5 + 0.5, Math.cos( i * 1.5 ) * 0.5 + 0.5, Math.sin( i * 4.5 + 0 ) * 0.5 + 0.5 ),
-								// side: THREE.DoubleSide,
-								clippingPlanes: clipPlanes,
-								clipIntersection: false
-							})
-				var bed = new THREE.Mesh( geometry, material );
-				bed.position.y = -1*numberOfBeds*bedThickness/2 + bedThickness*i
-				group.add( bed )
-			}
-
-			init();
-			animate();
-			function init() {
-				container = document.getElementById( 'container' );
-
-				scene = new THREE.Scene();
-				light = new THREE.DirectionalLight( 0xffffff );
-				light.position.set( 0, 0, 1 );
-				scene.add( light );
-
-				for (var ii =  0; ii < views.length; ++ii ) {
-					var view = views[ii];
-					var camera = view.camera
-					camera.position.fromArray( view.cameraPosition );
-					camera.lookAt(scene.position)
-					view.camera = camera
-				}
-
-				// shadow
-				var canvas = document.createElement( 'canvas' );
-				canvas.width = 128;
-				canvas.height = 128;
-				var context = canvas.getContext( '2d' );
-
-				var materials = [
-					new THREE.MeshPhongMaterial( { color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors, shininess: 0 } ),
-					new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true, transparent: true } )
-				];
-
-
-				scene.add(group)
-
-				renderer = new THREE.WebGLRenderer( { antialias: true } );
-				renderer.setPixelRatio( window.devicePixelRatio );
-				renderer.setSize( window.innerWidth, window.innerHeight );
-				container.appendChild( renderer.domElement );
-			}
-			function updateSize() {
-				if ( windowWidth != window.innerWidth || windowHeight != window.innerHeight ) {
-					windowWidth  = window.innerWidth;
-					windowHeight = window.innerHeight;
-					renderer.setSize ( windowWidth, windowHeight );
-				}
-			}
-			function animate() {
-				render();
-				requestAnimationFrame( animate );
-			}
-			function render() {
-				updateSize();
-				for ( var ii = 0; ii < views.length; ++ii ) {
-					var view = views[ii];
-					var camera = view.camera;
-					debugger
-					if (camera.type == "PerspectiveCamera") {
-						var controls = new THREE.OrbitControls(camera);
-						scene.userData.controls = controls;
-					}
-					var left   = Math.floor( windowWidth  * view.left );
-					var top    = Math.floor( windowHeight * view.top );
-					var width  = Math.floor( windowWidth  * view.width );
-					var height = Math.floor( windowHeight * view.height );
-					renderer.setViewport( left, top, width, height );
-					renderer.setScissor( left, top, width, height );
-					renderer.setScissorTest( true );
-					renderer.setClearColor( view.background );
-					camera.aspect = width / height;
-					camera.updateProjectionMatrix();
-					renderer.render( scene, camera );
-				}
-			}
-
-			var gui = new dat.GUI(),
-		    folderLocal = gui.addFolder( 'Strike and Dip' )
-		    props = {
-		  						get 'Strike'() { return group.rotation.y*180/Math.PI; },
-		  						set 'Strike'( v ) { group.rotation.y = v*Math.PI/180},
-
-		              get 'Dip'() { return group.rotation.x*180/Math.PI; },
-		  						set 'Dip'( v ) { group.rotation.x = v*Math.PI/180 }
-		  					};
-
-		    folderLocal.add( props, 'Strike', 0, 360 );
-		    folderLocal.add( props, 'Dip', 0, 90 );
-
-		</script>
-
+		<script src="js/three_views.js"></script>
 	</body>
 </html>

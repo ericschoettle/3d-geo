@@ -90,19 +90,7 @@ function init () {
   light3.position.set(100,-100,-100);
 
 
-  // GUI
-  var gui = new dat.GUI(),
-    folderLocal = gui.addFolder( 'Strike and Dip' )
-    props = {
-  						get 'Strike'() { return group.rotation.y*180/Math.PI; },
-  						set 'Strike'( v ) { group.rotation.y = v*Math.PI/180},
 
-              get 'Dip'() { return group.rotation.x*180/Math.PI; },
-  						set 'Dip'( v ) { group.rotation.x = v*Math.PI/180 }
-  					};
-
-    folderLocal.add( props, 'Strike', 0, 360 );
-    folderLocal.add( props, 'Dip', 0, 90 );
 
   // ADD BLOCK SCENE TO DOM
 
@@ -334,3 +322,17 @@ function planeFromObject(object, faceNumber) {
   mathPlane.setFromCoplanarPoints(objectPointA, objectPointB, objectPointC);
   return mathPlane
 }
+
+// GUI
+var gui = new dat.GUI(),
+  folderLocal = gui.addFolder( 'Strike and Dip' )
+  props = {
+            get 'Strike'() { return group.rotation.y*180/Math.PI; },
+            set 'Strike'( v ) { group.rotation.y = v*Math.PI/180},
+
+            get 'Dip'() { return group.rotation.x*180/Math.PI; },
+            set 'Dip'( v ) { group.rotation.x = v*Math.PI/180 }
+          };
+
+  folderLocal.add( props, 'Strike', 0, 360 );
+  folderLocal.add( props, 'Dip', 0, 90 );
