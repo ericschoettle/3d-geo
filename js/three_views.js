@@ -106,16 +106,38 @@ function init() {
   renderer.setSize( window.innerWidth, window.innerHeight );
   container.appendChild( renderer.domElement );
 
+  var text1 = document.createElement('div');
+  text1.style.position = 'absolute';
+  //text1.style.zIndex = 1;    // if you still don't see the label, try uncommenting this
+  text1.style.width = 100;
+  text1.style.height = 100;
+  text1.style.color = "white";
+  text1.innerHTML = "Block Diagram";
+  text1.style.top = '12%';
+  text1.style.left = '20%';
+  document.body.appendChild(text1);
+
   var text2 = document.createElement('div');
   text2.style.position = 'absolute';
   //text2.style.zIndex = 1;    // if you still don't see the label, try uncommenting this
   text2.style.width = 100;
   text2.style.height = 100;
-  text2.style.backgroundColor = "blue";
-  text2.innerHTML = "hi there!";
-  text2.style.top = 200 + 'px';
-  text2.style.left = 200 + 'px';
+  text2.style.color = "white";
+  text2.innerHTML = "Map View";
+  text2.style.top = '8%';
+  text2.style.left = '72%';
   document.body.appendChild(text2);
+
+  var text3 = document.createElement('div');
+  text3.style.position = 'absolute';
+  //text3.style.zIndex = 1;    // if you still don't see the label, try uncommenting this
+  text3.style.width = 100;
+  text3.style.height = 100;
+  text3.style.color = "white";
+  text3.innerHTML = "Cross Section";
+  text3.style.top = '58%';
+  text3.style.left = '72%';
+  document.body.appendChild(text3);
 }
 function updateSize() {
   if ( windowWidth != window.innerWidth || windowHeight != window.innerHeight ) {
