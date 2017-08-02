@@ -1,67 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 	<head>
-		<meta charset=utf-8>
+		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<title>3D Geo</title>
 		<style>
-			/*body { margin: 0; }
-			canvas { width: 100%; height: 100% }*/
-			* {
-				box-sizing: border-box;
-				-moz-box-sizing: border-box;
+			body {
+				color: #000;
+				font-family:Monospace;
+				font-size:13px;
+				text-align:center;
+				background-color: #fff;
+				margin: 0px;
+				overflow: hidden;
 			}
-			#content {
+			#info {
 				position: absolute;
 				top: 0px; width: 100%;
-				z-index: 1;
-				padding: 3em 0 0 0;
+				padding: 5px;
 			}
-			#c {
-				position: fixed;
-				left: 0px;
-				width: 100%;
-				height: 100%;
-			}
-			.list-item {
-				display: inline-block;
-				margin: 1em;
-				padding: 1em;
-				box-shadow: 1px 2px 4px 0px rgba(0,0,0,0.25);
-			}
-			.list-item .scene {
-				width: 800px;
-				height: 800px;
-			}
-			.list-item .description {
-				color: #888;
-				font-family: sans-serif;
-				font-size: large;
-				width: 200px;
-				margin-top: 0.5em;
+			a {
+				color: #0080ff;
 			}
 		</style>
 	</head>
 	<body>
 
-		<canvas id="c"></canvas>
+		<div id="container"></div>
 
-		<div id="content">
-
-		</div>
-
-		<script src="js/dat.gui.js"></script>
-		<!-- <script
-  src="http://code.jquery.com/jquery-3.2.1.min.js"
-  integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
-  crossorigin="anonymous"></script> -->
 		<script src="js/three.min.js"></script>
+		<script src="js/dat.gui.js"></script>
 		<script src="js/controls/OrbitControls.js"></script>
-
-		<script id="template" type="notjs">
-			<div class="scene"></div>
-			<div class="description">$</div>
-		</script>
-		<script src="js/box.js"></script>
+		<script src="js/three_views.js"></script>
 	</body>
 </html>
