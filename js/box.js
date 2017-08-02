@@ -1,22 +1,25 @@
-// Set camera, scene, orbitRenderer as global variables - might need
-var scene = new THREE.Scene();
-var orbitRenderer = new THREE.WebGLRenderer();
-var mapRenderer = new THREE.WebGLRenderer();
+// Set camera, scene, renderer as global variables - might need
+var blockScene = new THREE.Scene();
+var mapScene = new THREE.Scene();
+var xSectionScene = new THREE.Scene();
+var scenes = [], renderer, canvas;
+
+
 // Define beds
 var bedThickness = .25
 var numberOfBeds = 10
 var strike = 60
 var dip = 30
 
-var a = new THREE.Vector3(),
-  b = new THREE.Vector3(),
-  c = new THREE.Vector3();
-var planePointA = new THREE.Vector3(),
-  planePointB = new THREE.Vector3(),
-  planePointC = new THREE.Vector3();
-var lineAB = new THREE.Line3(),
-  lineBC = new THREE.Line3(),
-  lineCA = new THREE.Line3();
+// var a = new THREE.Vector3(),
+//   b = new THREE.Vector3(),
+//   c = new THREE.Vector3();
+// var planePointA = new THREE.Vector3(),
+//   planePointB = new THREE.Vector3(),
+//   planePointC = new THREE.Vector3();
+// var lineAB = new THREE.Line3(),
+//   lineBC = new THREE.Line3(),
+//   lineCA = new THREE.Line3();
 
 
 // Define cube of clipping planes for block diagram
@@ -50,63 +53,42 @@ for (var i = 0; i < numberOfBeds; i++) {
 }
 
 
-// Create an event listener that resizes the orbitRenderer with the browser window.
-window.addEventListener('resize', function() {
-  var WIDTH = window.innerWidth,
-      HEIGHT = window.innerHeight;
-  orbitRenderer.setSize(WIDTH, HEIGHT);
-  camera.aspect = WIDTH / HEIGHT;
-  camera.updateProjectionMatrix();
-});
+// // Create an event listener that resizes the renderer with the browser window.
+// window.addEventListener('resize', function() {
+//   var WIDTH = window.innerWidth,
+//       HEIGHT = window.innerHeight;
+//   renderer.setSize(WIDTH, HEIGHT);
+//   camera.aspect = WIDTH / HEIGHT;
+//   camera.updateProjectionMatrix();
+// });
 
 init();
 animate();
 
 function init () {
-  // Move camera away from box
-  orbitCamera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 1000 );
+  canvas = document.getElementById( "c" );
 
-  orbitCamera.position.x = 2;
-  orbitCamera.position.y = 2;
-  orbitCamera.position.z = 5;
-
-  orbitCamera.lookAt( scene.position );
-
-  // render the secene in HTML and insert it into the DOM
-
-  orbitRenderer.setSize( window.innerWidth*2/3, window.innerHeight*2/3 );
-  orbitRenderer.antialias = true;
-  orbitRenderer.setClearColor( 0x222222 );
-  orbitRenderer.localClippingEnabled = true;
-
-  $(".block-diagram").html( orbitRenderer.domElement );
-
-  // Set the background color of the scene.
-  // orbitRenderer.setClearColorHex(0x333F47, 1);
-
-  // Create a light, set its position, and add it to the scene.
-  var light = new THREE.PointLight(0xffffff, 1, 0, 2);
-  light.position.set(-100,200,100);
-  scene.add(light);
-
-  var light2 = new THREE.PointLight(0xffffff, 0.25, 0, 2);
-  light2.position.set(100,200,100);
-  scene.add(light2);
-
-  var light3 = new THREE.PointLight(0xffffff, 0.25, 0, 2);
-  light3.position.set(100,-100,-100);
-  scene.add(light3);
+  var template = document.getElementById( "template" ).text;
+  var content = document.getElementById( "content" );
 
   // Strike
   group.rotation.y = Math.PI/180 * strike
-
   //Dip
   group.rotation.x = Math.PI/180 * dip
-
   group.rotation.order = "YXZ"
-  scene.add( group );
 
   makeSides()
+
+  // Create a light, set its position, and add it to the scene.
+  var light1 = new THREE.PointLight(0xffffff, 1, 0, 2);
+  light1.position.set(-100,200,100);
+
+  var light2 = new THREE.PointLight(0xffffff, 0.25, 0, 2);
+  light2.position.set(100,200,100);
+
+  var light3 = new THREE.PointLight(0xffffff, 0.25, 0, 2);
+  light3.position.set(100,-100,-100);
+
 
   // GUI
   var gui = new dat.GUI(),
@@ -122,15 +104,145 @@ function init () {
     folderLocal.add( props, 'Strike', 0, 360 );
     folderLocal.add( props, 'Dip', 0, 90 );
 
+  // ADD BLOCK SCENE TO DOM
+
+  //Add a list item to the DOM
+  var element = document.createElement( "div" );
+  element.className = "list-item";
+  element.innerHTML = template.replace( '$', "Block Diagram" );
+  // Look up the element that represents the area
+  // we want to render the scene
+  blockScene.userData.element = element.querySelector( ".scene" );
+  debugger
+  content.appendChild( element );
+
+  // Move camera away from box
+  orbitCamera = new THREE.PerspectiveCamera( 45 , window.innerWidth / window.innerHeight, 0.1, 1000 );
+
+  orbitCamera.position.x = 2;
+  orbitCamera.position.y = 2;
+  orbitCamera.position.z = 5;
+
+  orbitCamera.lookAt( blockScene.position );
+  blockScene.userData.camera = orbitCamera
+  var controls = new THREE.OrbitControls( blockScene.userData.camera, blockScene.userData.element );
+  blockScene.userData.controls = controls;
+
+  blockScene.add( group )
+  blockScene.add( light1 )
+  blockScene.add( light2 )
+  blockScene.add( light3 )
+  scenes.push(blockScene)
+
+  // ADD Cross Section TO DOM
+  // var element = document.createElement( "div" );
+  // element.className = "list-item";
+  // element.innerHTML = template.replace( '$', "Cross Section" );
+  // // Look up the element that represents the area
+  // // we want to render the scene
+  // xSectionScene.userData.element = element.querySelector( ".scene" );
+  // content.appendChild( element );
+  //
+  // // position camera
+  // xSectionCamera = new THREE.OrthographicCamera( -1, 1, 1, -1, -500, 1000  );
+  // console.log(window.innerWidth/-2000)
+  // xSectionCamera.position.z = 5;
+  //
+  // xSectionCamera.lookAt( xSectionScene.position );
+  // xSectionScene.userData.camera = xSectionCamera
+  //
+  // xSectionScene.add( group )
+  // xSectionScene.add( light1 )
+  // xSectionScene.add( light2 )
+  // xSectionScene.add( light3 )
+  // scenes.push(xSectionScene)
+  //
+  // // ADD Map View TO DOM
+  // var element = document.createElement( "div" );
+  // element.className = "list-item";
+  // element.innerHTML = template.replace( '$', "Map View" );
+  // // Look up the element that represents the area
+  // // we want to render the scene
+  // mapScene.userData.element = element.querySelector( ".scene" );
+  // content.appendChild( element );
+  //
+  // // Position Camera
+  // mapCamera = new THREE.OrthographicCamera( -1, 1, 1, -1, -500, 1000  );
+  // console.log(window.innerWidth/-2000)
+  // mapCamera.position.y = 5;
+  //
+  // mapCamera.lookAt( mapScene.position );
+  // mapScene.userData.camera = mapCamera
+  //
+  // mapScene.add( group )
+  // mapScene.add( light1 )
+  // mapScene.add( light2 )
+  // mapScene.add( light3 )
+  // scenes.push(mapScene)
+  // //
+  // // render the secene in HTML and insert it into the DOM
+  // // renderer.setSize( window.innerWidth, window.innerHeight );
+  renderer = new THREE.WebGLRenderer( { canvas: canvas, antialias: true });
+  renderer.setClearColor( 0x222222 );
+  renderer.localClippingEnabled = true;
+
+  document.body.appendChild( renderer.domElement );
+
   // Add OrbitControls so that we can pan around with the mouse.
-  controls = new THREE.OrbitControls(orbitCamera, orbitRenderer.domElement);
+  // controls = new THREE.OrbitControls(orbitCamera, renderer.domElement);
 }
 
 function animate() {
   requestAnimationFrame( animate );
-  orbitRenderer.render( scene, orbitCamera );
+  render();
+  // renderer.render( scene, orbitCamera );
 }
 
+function render() {
+  updateSize();
+  renderer.setClearColor( 0xffffff );
+  renderer.setScissorTest( false );
+  renderer.clear();
+  renderer.setClearColor( 0xe0e0e0 );
+  renderer.setScissorTest( true );
+  scenes.forEach( function( scene ) {
+    // so something moves
+    // scene.children[0].rotation.y = Date.now() * 0.001;
+    // get the element that is a place holder for where we want to
+    // draw the scene
+    var element = scene.userData.element;
+    // get its position relative to the page's viewport
+    var rect = element.getBoundingClientRect();
+    // check if it's offscreen. If so skip it
+    if ( rect.bottom < 0 || rect.top  > renderer.domElement.clientHeight ||
+       rect.right  < 0 || rect.left > renderer.domElement.clientWidth ) {
+      return;  // it's off screen
+    }
+    // set the viewport
+    var width  = rect.right - rect.left;
+    var height = rect.bottom - rect.top;
+    var left   = rect.left;
+    var top    = rect.top;
+    renderer.setViewport( left, top, width, height );
+    renderer.setScissor( left, top, width, height );
+    var camera = scene.userData.camera;
+    if (camera.isOrthographicCamera) {
+      debugger
+    }
+    //camera.aspect = width / height; // not changing in this example
+    //camera.updateProjectionMatrix();
+    //scene.userData.controls.update();
+    renderer.render( scene, camera );
+  } );
+}
+
+function updateSize() {
+  var width = canvas.clientWidth;
+  var height = canvas.clientHeight;
+  if ( canvas.width !== width || canvas.height != height ) {
+    renderer.setSize( width, height, false );
+  }
+}
 
 function generateClipVertices() {
   var clipVertices = new THREE.Geometry()
@@ -207,7 +319,7 @@ function makeSides() {
       sidesGroup.add(ring)
     }
   }
-  scene.add(ring)
+  group.add(ring)
 }
 
 function planeFromObject(object, faceNumber) {
