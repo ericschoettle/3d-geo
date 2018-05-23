@@ -52,12 +52,12 @@ let beds = new THREE.Object3D();
 // clip planes define a fixed cube, the inside of which is visible. 
 let clipPlanes = [
   // Plane(Normal vector (x, y, z), distance)
-  new THREE.Plane( new THREE.Vector3( -1,  0,  0 ), 0.99 ), // Right
-  new THREE.Plane( new THREE.Vector3( 0, -1,  0 ), 0.99 ),  // Top
-  new THREE.Plane( new THREE.Vector3( 0,  0, -1 ), 0.99 ),  // Front
-  new THREE.Plane( new THREE.Vector3( 1,  0,  0 ), 0.99 ),  // Left
-  new THREE.Plane( new THREE.Vector3( 0, 1,  0 ), 0.99 ),  // Bottom
-  new THREE.Plane( new THREE.Vector3( 0,  0, 1 ), 0.99 )  //Back
+  new THREE.Plane( new THREE.Vector3( -1,  0,  0 ), 1.0 ), // Right
+  new THREE.Plane( new THREE.Vector3( 0, -1,  0 ), 1.0 ),  // Top
+  new THREE.Plane( new THREE.Vector3( 0,  0, -1 ), 1.0 ),  // Front
+  new THREE.Plane( new THREE.Vector3( 1,  0,  0 ), 1.0 ),  // Left
+  new THREE.Plane( new THREE.Vector3( 0, 1,  0 ), 1.0 ),  // Bottom
+  new THREE.Plane( new THREE.Vector3( 0,  0, 1 ), 1.0 )  //Back
 ];
 
 // Make beds
@@ -122,29 +122,42 @@ class ClipCube {
 
 
   coverFaces () {
+    let coveredFaces = new THREE.Group();
     this.faces.forEach((face) => {
-
+      let coveredFace = new THREE.Group();
+      coveredFace.name = face.faceType;
       /** Here I need logic to see if I'm at first or last bed that intersects (if previous or next bed doesn't intersect).
        * I need to flip the sequence to ['top', 'bottom', 'bottom', top'] if there are corners that need to be grabbed below the bed rather than above
        * I also need to figure out how to color if ZERO point intersect. Tricky, because relevant information shows up on other faces. 
        */
 
-      // TODO pull out, make object oriented.
-      let results = {}
+
       beds.children.forEach(bed => {
         let planes = {
           top: planeFromObject(bed, 4), // 4 and 5 are the indicies of the triangles on the top face of the bed (BoxGeometry) made by THREE.js
           bottom: planeFromObject(bed, 6), // 6 and 7 are the indicies of the triangles on the bottom face of the bed (BoxGeometry) made by THREE.js
         }
         
-        results = face.findPointsOfIntersection(bed, planes);
-       
-      });
-      if (results.sequenceCounter !== 4) {
-        console.log(`WARNING!! Only ${results.sequenceCounter} corners found on face: `, face) 
-      }
-      
+        let results = face.findPointsOfIntersection(bed, planes);
+        if (results.sequenceCounter !== 4) {
+          console.log(`WARNING!! Only ${results.sequenceCounter} corners found on face: `, face) 
+        }
+        if (Array.isArray(results.points) && results.points.length) {
+          let geometry = makeGeometryFromPoints(results.points, face.normalVector);
+          let material = new THREE.MeshPhongMaterial({
+            color: bed.material.color,
+            side: THREE.DoubleSide,
+          })
+          let coveredBedFace = new THREE.Mesh( geometry, material);
+          scene.add(coveredBedFace);
+          coveredFace.add(coveredBedFace);
+        }
+      }); 
+      coveredFaces.add(coveredFace);     
     });
+    coveredFaces.name = 'coveredFaces';
+    scene.add(coveredFaces);
+    return coveredFaces;
   }
 }
 
@@ -280,6 +293,20 @@ class Face {
 
 let clipCube = new ClipCube
 
+// Only reliable for polygons with all convex corners. It returns a THREE.Geometry object
+function makeGeometryFromPoints(points, normalVector) {
+  if (points.length < 3) {
+    return {error: `Cannot build a polygon with less than three points.`}
+  }
+  let geometry = new THREE.Geometry();
+  for (let i = 0; i < points.length; i++) {
+    geometry.vertices.push(points[i]);
+  }
+  for (let i = 2; i < points.length; i++) {
+    geometry.faces.push(new THREE.Face3(0, i-1, i, normalVector));
+  }
+  return geometry;
+}
 
 init();
 animate();
@@ -319,6 +346,7 @@ function init() {
   scene.add(beds)
 
   clipCube.coverFaces();
+  
 
   // todo: find a good place for this stuff
   renderer = new THREE.WebGLRenderer( { antialias: true, localClippingEnabled: true } );
@@ -402,12 +430,20 @@ props = {
           get 'Strike'() { 
             return beds.rotation.y*180/Math.PI; 
           },
-          set 'Strike'( v ) { 
+          set 'Strike'( v ) {  
             beds.rotation.y = v*Math.PI/180;
+            var coveredFaces = scene.getObjectByName('coveredFaces');
+            scene.remove( coveredFaces );
+            clipCube.coverFaces();
           },
 
           get 'Dip'() { return beds.rotation.x*180/Math.PI; },
-          set 'Dip'( v ) { beds.rotation.x = v*Math.PI/180 }
+          set 'Dip'( v ) { 
+            beds.rotation.x = v*Math.PI/180 
+            var coveredFaces = scene.getObjectByName('coveredFaces');
+            scene.remove( coveredFaces );
+            clipCube.coverFaces();
+          }
         };
 
 folderLocal.add( props, 'Strike', 0, 360 );
