@@ -1,12 +1,12 @@
 // Sets up the object and three views: a block diagram on the corner, a map view, and a cross section view.
 
 // Initialize strike and dip
-let strike = 60
+let strike = 10
 let dip = 10
 
 // Set bed parameters
 let bedThickness = .25
-let numberOfBeds = 10
+let numberOfBeds = 14
 
 // Declare variables for later use
 let container;
@@ -21,8 +21,8 @@ let views = [
     width: 0.5,
     height: 1.0,
     background: new THREE.Color("#3d3d3d"),
-    camera: new THREE.PerspectiveCamera( 45 , window.innerWidth / window.innerHeight, 0.1, 1000 ),
-    cameraPosition: [ 2, 2, 5 ]
+    camera: new THREE.PerspectiveCamera( 20 , window.innerWidth / window.innerHeight, 0.1, 1000 ),
+    cameraPosition: [ 4, 4, 10 ]
   },
   // Cross section Camera
   {
@@ -130,19 +130,27 @@ class ClipCube {
        * I need to flip the sequence to ['top', 'bottom', 'bottom', top'] if there are corners that need to be grabbed below the bed rather than above
        * I also need to figure out how to color if ZERO point intersect. Tricky, because relevant information shows up on other faces. 
        */
-
-
-      beds.children.forEach(bed => {
+      
+      for (let i = 0; i < beds.children.length; i++) {
+        const bed = beds.children[i];
         let planes = {
           top: planeFromObject(bed, 4), // 4 and 5 are the indicies of the triangles on the top face of the bed (BoxGeometry) made by THREE.js
           bottom: planeFromObject(bed, 6), // 6 and 7 are the indicies of the triangles on the bottom face of the bed (BoxGeometry) made by THREE.js
         }
+
+
         
         let results = face.findPointsOfIntersection(bed, planes);
-        if (results.sequenceCounter !== 4) {
-          console.log(`WARNING!! Only ${results.sequenceCounter} corners found on face: `, face) 
-        }
-        if (Array.isArray(results.points) && results.points.length) {
+        if ((face.faceType === 'top') && results) {
+          console.log(i, results);
+        };
+        // if (results.points.length === 0) {
+        //   // console.log(`WARNING!! Only ${results.sequenceCounter} corners found on face: `, face,  `and bed:`, bed, 'points:', results.points.length) 
+        //   results = face.findPointsOfIntersection(bed, planes, true)
+        //     debugger;
+        // }
+
+        if (Array.isArray(results.points) && results.points.length > 3) {
           let geometry = makeGeometryFromPoints(results.points, face.normalVector);
           let material = new THREE.MeshPhongMaterial({
             color: bed.material.color,
@@ -152,12 +160,40 @@ class ClipCube {
           scene.add(coveredBedFace);
           coveredFace.add(coveredBedFace);
         }
-      }); 
+      }
       coveredFaces.add(coveredFace);     
     });
     coveredFaces.name = 'coveredFaces';
     scene.add(coveredFaces);
     return coveredFaces;
+  }
+}
+
+// Takes a vector with two zero components and one with a value, returns direction and value;
+function getVectorDirection(vector) {
+  let firstZeroKey = '';
+  let secondZeroKey = '';
+  let directionKey = '';
+  let directionValue = 0;
+
+  'xyz'.split('').forEach((letter) => {
+    if (vector[letter]) {
+      directionKey = letter;
+      directionValue = vector[letter];
+    } else {
+      if(!firstZeroKey) {
+        firstZeroKey = letter;
+      } else {
+        secondZeroKey = letter;
+      }
+    }
+  });
+
+  return {
+    firstZeroKey: firstZeroKey,
+    secondZeroKey: secondZeroKey,
+    directionKey: directionKey,
+    directionValue: directionValue
   }
 }
 
@@ -176,6 +212,7 @@ class Face {
   }
 
 
+
   makeEdges() {
     let edges = []
     for (let i = 0; i < this.vertices.length -1; i++) {
@@ -188,66 +225,109 @@ class Face {
     // console.log('making vertices')
     let vertices = []
 
-    let firstZeroKey = '';
-    let secondZeroKey = '';
-    let fixedKey = '';
-    let fixedVal = 0;
-
     let currentVertex = {
       x: -1,
       y: -1,
       z: -1,
     };
-
-    // find zero direction, designate other two so we can work with them in predicatable order
-    'xyz'.split('').forEach((letter) => {
-      if (this.normalVector[letter]) {
-        fixedKey = letter;
-        fixedVal = this.normalVector[letter];
-      } else {
-        if(!firstZeroKey) {
-          firstZeroKey = letter;
-        } else {
-          secondZeroKey = letter;
-        }
-      }
-    })
+    
+    let normalComponents = getVectorDirection(this.normalVector);
 
     // Cycle around face (clockwise), so that vertices are in order and share a vertex with previous and next vertex. 
-    currentVertex[fixedKey] = fixedVal;
+    currentVertex[normalComponents.directionKey] = normalComponents.directionValue;
     vertices.push(new THREE.Vector3(currentVertex.x, currentVertex.y, currentVertex.z));
-    currentVertex[secondZeroKey] = 1;
+    currentVertex[normalComponents.secondZeroKey] = 1;
     vertices.push(new THREE.Vector3(currentVertex.x, currentVertex.y, currentVertex.z));
-    currentVertex[firstZeroKey] = 1;
+    currentVertex[normalComponents.firstZeroKey] = 1;
     vertices.push(new THREE.Vector3(currentVertex.x, currentVertex.y, currentVertex.z));
-    currentVertex[secondZeroKey] = -1;
+    currentVertex[normalComponents.secondZeroKey] = -1;
     vertices.push(new THREE.Vector3(currentVertex.x, currentVertex.y, currentVertex.z));
-    currentVertex[firstZeroKey] = -1;
+    currentVertex[normalComponents.firstZeroKey] = -1;
     vertices.push(new THREE.Vector3(currentVertex.x, currentVertex.y, currentVertex.z)); // Fifth vertex is same as start - makes it easier to build edges by giong in a loop
     return vertices
   }
+  // Takes a plane and finds a point where that plane intersects a face. Returns the point and the edge where the intersection happens. 
+  findInitialIntersection(plane) {
+    let edges = this.edges;
+    let initialEdge = null;
+    let initialEdgeIndex = null;
+    let initialPoint = null;
 
-  // Recursive function to find where a bed intersects with the edges of a face.
+    edges.forEach((edge, index)=> {
+      let point = plane.intersectLine(edge);
+      if (point) {
+        initialEdgeIndex = index;
+        initialEdge = edge;
+        initialPoint = point;
+      }
+    });
+
+    return initialPoint ? {initialEdge: initialEdge, initialEdgeIndex: initialEdgeIndex, initialPoint: initialPoint} : null;
+  }
+
+  // Reorders the edges so that a search for points of intersection between two planes and a face will go in a predictable order, eg bottom plane, top, top, bottom, and begin on the edge with the first bottom. 
+  reorderEdges(plane, edges, initial) {
+    debugger
+    let reorderedEdges = [];
+    // Test for reversal
+    if (this.testForEdgeReversal(plane, edges, initial)) {
+      // Reverse and Reorder
+      for (let i = initial.initialEdgeIndex; i > initial.initialEdgeIndex - edges.length; i--) {
+        // Switch direction of edge
+        reorderedEdges.push(new THREE.Line3(edges[i % edges.length].end, edges[i% edges.length].start));
+      }
+    } else {
+      // reorder
+      for (let i = initial.initialEdgeIndex; i < initial.initialEdgeIndex + edges.length; i++) {
+        reorderedEdges.push(edges[i % edges.length]);  
+      }
+    }
+    return reorderedEdges;
+  }
+
+  testForEdgeReversal(plane, edges, initial) {
+    let edgeDirection = {component: null, value: null}
+    let edgeVector = initial.initialEdge.delta();
+    edgeDirection = getVectorDirection(edgeVector);
+    return (Math.sign(edgeDirection.directionValue) !== Math.sign(plane.normal[edgeDirection.directionKey]));
+  }
+
+  // Find where a bed intersects with the edges of a face, return 
   findPointsOfIntersection(bed, planes) {
 
-    let points = [];
-    let pointSequence = ['bottom', 'top', 'top', 'bottom'];
-    let sequenceCounter = 0;
-    let edgeCounter = 0;
     let edges = this.edges;
+    let points = [];
+    let initialBottom = this.findInitialIntersection(planes.bottom);
+
+    if (initialBottom) {
+      edges = this.reorderEdges(planes.bottom, this.edges, initialBottom);
+      points = this.verticiesInOrder(bed, planes, edges, ['bottom', 'top', 'top', 'bottom'])
+      return points
+    } else {
+      let initialTop = this.findInitialIntersection(planes.top);
+      if (initialTop) {
+        edges = this.reorderEdges(planes.top, this.edges, initialTop);
+        points = this.verticiesInOrder(bed, planes, edges, ['top', 'bottom', 'bottom', 'top'])
+      } else {
+        // this.checkLastBed(bed, planes)
+      } 
+    }
+
+    let sequenceCounter = 0;
+    let pointSequence = ['bottom', 'top', 'top', 'bottom']
+    let edgeCounter = 0;
 
     while ((sequenceCounter < 4) && (edgeCounter < 4)) {
       // Add points and advance
       let point = planes[pointSequence[sequenceCounter]].intersectLine(edges[edgeCounter]);
       if (point) {
         points.push(point);
-        sequenceCounter++;
-      };
-
+        sequenceCounter++; 
+      } 
       // If haven't found, skip to next edge. 
       if (sequenceCounter === 0) {
-        edgeCounter++;
-      // If point, look for next one point on same edge, otherwise, add a corner
+          edgeCounter++;
+      // If point, look for next point on same edge, otherwise, add a corner
       } else if (sequenceCounter === 1) { 
         if (point) {
           secondPointOnEdge()
@@ -287,6 +367,7 @@ class Face {
       points.push(edges[edgeCounter].end);
       edgeCounter++;
     }
+  
   return {points: points, sequenceCounter: sequenceCounter}
   }
 }
@@ -296,6 +377,7 @@ let clipCube = new ClipCube
 // Only reliable for polygons with all convex corners. It returns a THREE.Geometry object
 function makeGeometryFromPoints(points, normalVector) {
   if (points.length < 3) {
+    debugger;
     return {error: `Cannot build a polygon with less than three points.`}
   }
   let geometry = new THREE.Geometry();
@@ -307,6 +389,21 @@ function makeGeometryFromPoints(points, normalVector) {
   }
   return geometry;
 }
+
+function planeFromObject(object, faceNumber) {
+  let objectPointA = new THREE.Vector3(),
+    objectPointB = new THREE.Vector3(),
+    objectPointC = new THREE.Vector3();
+
+  let mathPlane = new THREE.Plane();
+  scene.updateMatrixWorld();
+  let worldA = object.localToWorld(objectPointA.copy(object.geometry.vertices[object.geometry.faces[faceNumber].a]));
+  let worldB = object.localToWorld(objectPointB.copy(object.geometry.vertices[object.geometry.faces[faceNumber].b]));
+  let worldC = object.localToWorld(objectPointC.copy(object.geometry.vertices[object.geometry.faces[faceNumber].c]));
+  mathPlane.setFromCoplanarPoints(worldA, worldB, worldC);
+  return mathPlane;
+}
+
 
 init();
 animate();
@@ -449,112 +546,3 @@ props = {
 folderLocal.add( props, 'Strike', 0, 360 );
 folderLocal.add( props, 'Dip', 0, 90 );
 
-
-// OLD JUNK
-// function makeSides() {
-//   // Delete existing sides if exist
-//   scene.remove(scene.getObjectByName('sides', true));
-//   // Create new sides
-//   let sides = new THREE.Object3D();
-//   sides.name = "sides"
-
-
-
-//   if (yAxisBoundingLines.length === 0) {makeLinesFromVertices(); }
-//   //Loop through each bed
-//   for (let i = 0; i < beds.children.length; i++) {
-//     //Set variables
-//     let bed = beds.children[i];
-//     let topPlane = planeFromObject(bed, 4); //5 also a top face
-//     let bottomPlane = planeFromObject(bed, 6); //7 also a bottom face.
-//     let topPointsIndexArray = []
-//     let bottomPointsIndexArray = []
-//     let sidesRing = new THREE.Geometry()
-//     //Gather points of intersection
-//     for (let j = 0; j < yAxisBoundingLines.length; j++) {
-//       let verticalSides = new THREE.Geometry();
-//       let topPointOfIntersection = topPlane.intersectLine(yAxisBoundingLines[j]);
-//       let bottomPointOfIntersection = bottomPlane.intersectLine(yAxisBoundingLines[j]);
-
-//       if (topPointOfIntersection) {
-//         let index = sidesRing.vertices.push(topPointOfIntersection.clone()) - 1;//for some indecipherable reason, when you push to vertices, the function returns the index, plus one.
-//         topPointsIndexArray.push(index)
-//       } else {
-//         console.log('no top point for:', yAxisBoundingLines[j])
-//       };
-//       if (bottomPointOfIntersection) {
-//         let index = sidesRing.vertices.push(bottomPointOfIntersection.clone())-1;//for some indecipherable reason, when you push to vertices, the function returns the index, plus one.
-//         bottomPointsIndexArray.push(index)
-//       } else {
-//         console.log('no bottom point for:', yAxisBoundingLines[j])
-//       };
-//     }
-    
-//     // loop through comparing vertices and make sides
-//     if (topPointsIndexArray.length == 4 && bottomPointsIndexArray.length == 4) {
-//       for (let j = 0; j < topPointsIndexArray.length; j++) {
-//         for (let k = j + 1; k < topPointsIndexArray.length; k++) {
-//           if ((sidesRing.vertices[topPointsIndexArray[j]].x == sidesRing.vertices[topPointsIndexArray[k]].x) || (sidesRing.vertices[topPointsIndexArray[j]].z == sidesRing.vertices[topPointsIndexArray[k]].z) ) { // if two point are adjacent
-//             let normal = new THREE.Vector3( 0, 1, 0 )
-//             let face1 = new THREE.Face3( topPointsIndexArray[j], topPointsIndexArray[k], bottomPointsIndexArray[j], normal ) // make face with two points on the top
-//             let face2 = new THREE.Face3( bottomPointsIndexArray[j], bottomPointsIndexArray[k], topPointsIndexArray[k], normal ) // make face with two points on the bottom
-//             console.log('face1', face1, 'face2', face2)
-//             sidesRing.faces.push(face1)
-//             sidesRing.faces.push(face2)
-//           }
-//         }
-//       }
-//     }
-//     if (sidesRing.faces) {
-//       ring = new THREE.Mesh( sidesRing, beds.children[i].material );
-//       sides.add(ring)
-//     }
-//   }
-//   console.log(sides.children);
-//   scene.add(sides);
-// }
-
-// Soon obviated
-// function generateClipVertices() {
-//   let clipVertices = new THREE.Geometry()
-//   for (let i = -1; i < 2; i += 2) {
-//     for (let j = -1; j < 2; j += 2) {
-//       for (let k = -1; k < 2; k += 2) {
-//         let n = new THREE.Vector3(i,j,k)
-//         clipVertices.vertices.push(n.clone())
-//       }
-//     }
-//   }
-//   return clipVertices
-// }
-
-// Soon obviated
-// function makeLinesFromVertices() {
-//   let clipVertices = generateClipVertices()
-//   let vertices = clipVertices.vertices;
-//   for (let i = 0; i < vertices.length; i++) {
-//     for (let j = i+1; j < vertices.length; j++) {
-//       if (vertices[i].x == vertices[j].x && vertices[i].y == vertices[j].y) {
-//         zAxisBoundingLines.push(new THREE.Line3(vertices[i],vertices[j]))
-//       } else if (vertices[i].x == vertices[j].x && vertices[i].z == vertices[j].z) {
-//         yAxisBoundingLines.push(new THREE.Line3(vertices[i],vertices[j]))
-//       } else if (vertices[i].y == vertices[j].y && vertices[i].z == vertices[j].z) {
-//         xAxisBoundingLines.push(new THREE.Line3(vertices[i],vertices[j]))
-//       }
-//     }
-//   }
-// }
-
-function planeFromObject(object, faceNumber) {
-  let objectPointA = new THREE.Vector3(),
-    objectPointB = new THREE.Vector3(),
-    objectPointC = new THREE.Vector3();
-
-  let mathPlane = new THREE.Plane();
-  scene.updateMatrixWorld();
-  let worldA = object.localToWorld(objectPointA.copy(object.geometry.vertices[object.geometry.faces[faceNumber].a]));
-  let worldB = object.localToWorld(objectPointB.copy(object.geometry.vertices[object.geometry.faces[faceNumber].b]));
-  let worldC = object.localToWorld(objectPointC.copy(object.geometry.vertices[object.geometry.faces[faceNumber].c]));
-  mathPlane.setFromCoplanarPoints(worldA, worldB, worldC);
-  return mathPlane;
-}
