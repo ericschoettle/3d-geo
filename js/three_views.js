@@ -134,10 +134,12 @@ class ClipCube {
           bottom: planeFromObject(bed, 6), // 6 and 7 are the indicies of the triangles on the bottom face of the bed (BoxGeometry) made by THREE.js
         }
         
-        let results = face.findPointsOfIntersection(bed, planes);
+        let points = face.findPointsOfIntersection(bed, planes);
 
-        if (Array.isArray(results.points) && results.points.length >= 3) {
-          let geometry = makeGeometryFromPoints(results.points, face.normalVector);
+        if (Array.isArray(points) && points.length >= 3) {
+          let geometry = makeGeometryFromPoints(points);
+          geometry.computeFaceNormals();
+          // geometry.computeVertexNormals();
           let material = new THREE.MeshPhongMaterial({
             color: bed.material.color,
             side: THREE.DoubleSide,
@@ -284,15 +286,15 @@ class Face {
 
     if (initialBottom) {
       edges = this.reorderEdges(planes.bottom, this.edges, initialBottom);
-      return this.verticiesInOrder(bed, planes, edges, ['bottom', 'top', 'top', 'bottom'])
+      return this.verticiesInOrder(bed, planes, edges, ['bottom', 'top', 'top', 'bottom']);
     } else {
       let initialTop = this.findInitialIntersection(planes.top);
       if (initialTop) {
         edges = this.reorderEdges(planes.top, this.edges, initialTop);
-        return this.verticiesInOrder(bed, planes, edges, ['top', 'bottom', 'bottom', 'top'])
+        return this.verticiesInOrder(bed, planes, edges, ['top', 'bottom', 'bottom', 'top']);
       } else {
         // this.checkLastBed(bed, planes)
-        return {points: [], sequenceCounter: 0}
+        return [];
       } 
     }
   }
@@ -354,7 +356,7 @@ class Face {
       edgeCounter++;
     }
   
-    return {points: points, sequenceCounter: sequenceCounter}
+    return points
   }
 }
 
@@ -403,6 +405,7 @@ function init() {
   let pointLight = new THREE.PointLight(0xffffff, 1, 0, 2);
   pointLight.position.set(-100,200,100);
   scene.add( ambientLight, pointLight );
+  // scene.add( ambientLight );
 
   //Set cameras to look at scene
   for (let i =  0; i < views.length; ++i ) {
