@@ -1,8 +1,8 @@
 // Sets up the object and three views: a block diagram on the corner, a map view, and a cross section view.
 
 // Initialize strike and dip
-let strike = 10
-let dip = 10
+let strike = 160
+let dip = 29
 
 // Set bed parameters
 let bedThickness = .25
@@ -126,10 +126,6 @@ class ClipCube {
     this.faces.forEach((face) => {
       let coveredFace = new THREE.Group();
       coveredFace.name = face.faceType;
-      /** Here I need logic to see if I'm at first or last bed that intersects (if previous or next bed doesn't intersect).
-       * I need to flip the sequence to ['top', 'bottom', 'bottom', top'] if there are corners that need to be grabbed below the bed rather than above
-       * I also need to figure out how to color if ZERO point intersect. Tricky, because relevant information shows up on other faces. 
-       */
       
       for (let i = 0; i < beds.children.length; i++) {
         const bed = beds.children[i];
@@ -137,20 +133,10 @@ class ClipCube {
           top: planeFromObject(bed, 4), // 4 and 5 are the indicies of the triangles on the top face of the bed (BoxGeometry) made by THREE.js
           bottom: planeFromObject(bed, 6), // 6 and 7 are the indicies of the triangles on the bottom face of the bed (BoxGeometry) made by THREE.js
         }
-
-
         
         let results = face.findPointsOfIntersection(bed, planes);
-        if ((face.faceType === 'top') && results) {
-          console.log(i, results);
-        };
-        // if (results.points.length === 0) {
-        //   // console.log(`WARNING!! Only ${results.sequenceCounter} corners found on face: `, face,  `and bed:`, bed, 'points:', results.points.length) 
-        //   results = face.findPointsOfIntersection(bed, planes, true)
-        //     debugger;
-        // }
 
-        if (Array.isArray(results.points) && results.points.length > 3) {
+        if (Array.isArray(results.points) && results.points.length >= 3) {
           let geometry = makeGeometryFromPoints(results.points, face.normalVector);
           let material = new THREE.MeshPhongMaterial({
             color: bed.material.color,
@@ -211,8 +197,6 @@ class Face {
     }
   }
 
-
-
   makeEdges() {
     let edges = []
     for (let i = 0; i < this.vertices.length -1; i++) {
@@ -267,12 +251,11 @@ class Face {
 
   // Reorders the edges so that a search for points of intersection between two planes and a face will go in a predictable order, eg bottom plane, top, top, bottom, and begin on the edge with the first bottom. 
   reorderEdges(plane, edges, initial) {
-    debugger
     let reorderedEdges = [];
     // Test for reversal
     if (this.testForEdgeReversal(plane, edges, initial)) {
       // Reverse and Reorder
-      for (let i = initial.initialEdgeIndex; i > initial.initialEdgeIndex - edges.length; i--) {
+      for (let i = initial.initialEdgeIndex + edges.length; i > initial.initialEdgeIndex; i--) {
         // Switch direction of edge
         reorderedEdges.push(new THREE.Line3(edges[i % edges.length].end, edges[i% edges.length].start));
       }
@@ -289,7 +272,7 @@ class Face {
     let edgeDirection = {component: null, value: null}
     let edgeVector = initial.initialEdge.delta();
     edgeDirection = getVectorDirection(edgeVector);
-    return (Math.sign(edgeDirection.directionValue) !== Math.sign(plane.normal[edgeDirection.directionKey]));
+    return (Math.sign(edgeDirection.directionValue) === Math.sign(plane.normal[edgeDirection.directionKey]));
   }
 
   // Find where a bed intersects with the edges of a face, return 
@@ -301,21 +284,24 @@ class Face {
 
     if (initialBottom) {
       edges = this.reorderEdges(planes.bottom, this.edges, initialBottom);
-      points = this.verticiesInOrder(bed, planes, edges, ['bottom', 'top', 'top', 'bottom'])
-      return points
+      return this.verticiesInOrder(bed, planes, edges, ['bottom', 'top', 'top', 'bottom'])
     } else {
       let initialTop = this.findInitialIntersection(planes.top);
       if (initialTop) {
         edges = this.reorderEdges(planes.top, this.edges, initialTop);
-        points = this.verticiesInOrder(bed, planes, edges, ['top', 'bottom', 'bottom', 'top'])
+        return this.verticiesInOrder(bed, planes, edges, ['top', 'bottom', 'bottom', 'top'])
       } else {
         // this.checkLastBed(bed, planes)
+        return {points: [], sequenceCounter: 0}
       } 
     }
+  }
+
+  verticiesInOrder(bed, planes, edges, pointSequence) {
 
     let sequenceCounter = 0;
-    let pointSequence = ['bottom', 'top', 'top', 'bottom']
     let edgeCounter = 0;
+    let points = [];
 
     while ((sequenceCounter < 4) && (edgeCounter < 4)) {
       // Add points and advance
@@ -368,7 +354,7 @@ class Face {
       edgeCounter++;
     }
   
-  return {points: points, sequenceCounter: sequenceCounter}
+    return {points: points, sequenceCounter: sequenceCounter}
   }
 }
 
