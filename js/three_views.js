@@ -1,12 +1,16 @@
 // Sets up the object and three views: a block diagram on the corner, a map view, and a cross section view.
 
 // Initialize strike and dip
-let strike = 160
-let dip = 29
+let strike = 20;
+let dip = 30;
+
+// Set view defaults
+let transparent = false;
+let spinCamera = false;
 
 // Set bed parameters
-let bedThickness = .25
-let numberOfBeds = 14
+let bedThickness = .25;
+let numberOfBeds = 14;
 
 // Declare variables for later use
 let container;
@@ -419,19 +423,16 @@ function init() {
   canvas.height = 128;
   let context = canvas.getContext( '2d' ); // necessary?
 
-  // make wireframe
-  // let materials = [
-  //   new THREE.MeshPhongMaterial( { color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors, shininess: 0 } ),
-  //   new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true, transparent: true } )
-  // ];
-
   // Rotate Beds and add
   beds.rotation.y = Math.PI/180 * strike
   beds.rotation.x = Math.PI/180 * dip
   beds.rotation.order = "YXZ"
   scene.add(beds)
 
-  clipCube.coverFaces();
+  if (!transparent) {
+    clipCube.coverFaces();
+  }
+  
   
 
   // todo: find a good place for this stuff
@@ -488,7 +489,7 @@ function render() {
   for ( let i = 0; i < views.length; ++i ) {
     let view = views[i];
     let camera = view.camera;
-    // if (camera.type == "PerspectiveCamera") {
+    // if (camera.type === "PerspectiveCamera" && viewControls.spinCamera === true) {
     // 	let controls = new THREE.OrbitControls(camera);
     // 	scene.userData.controls = controls;
     // }
@@ -510,28 +511,55 @@ function render() {
 
 
 // make GUI
+
 let gui = new dat.GUI();
-folderLocal = gui.addFolder( 'Strike and Dip' )
-props = {
-          get 'Strike'() { 
-            return beds.rotation.y*180/Math.PI; 
-          },
-          set 'Strike'( v ) {  
-            beds.rotation.y = v*Math.PI/180;
-            var coveredFaces = scene.getObjectByName('coveredFaces');
-            scene.remove( coveredFaces );
-            clipCube.coverFaces();
-          },
 
-          get 'Dip'() { return beds.rotation.x*180/Math.PI; },
-          set 'Dip'( v ) { 
-            beds.rotation.x = v*Math.PI/180 
-            var coveredFaces = scene.getObjectByName('coveredFaces');
-            scene.remove( coveredFaces );
-            clipCube.coverFaces();
-          }
-        };
+strikeAndDipGUIFolder = gui.addFolder( 'Strike and Dip' );
+viewControlsGUIFolder = gui.addFolder( 'View Controls' );
 
-folderLocal.add( props, 'Strike', 0, 360 );
-folderLocal.add( props, 'Dip', 0, 90 );
+strikeAndDipProps = {
+  get 'Strike'() { 
+    return beds.rotation.y*180/Math.PI; 
+  },
+  set 'Strike'( v ) {  
+    beds.rotation.y = v*Math.PI/180;
+    if (!transparent) {
+      let coveredFaces = scene.getObjectByName('coveredFaces');
+      scene.remove( coveredFaces );
+      clipCube.coverFaces();
+    }
+
+  },
+
+  get 'Dip'() { return beds.rotation.x*180/Math.PI; },
+  set 'Dip'( v ) { 
+    beds.rotation.x = v*Math.PI/180 
+    if (!transparent) {
+      let coveredFaces = scene.getObjectByName('coveredFaces');
+      scene.remove( coveredFaces );
+      clipCube.coverFaces();
+    }
+  }
+};
+
+strikeAndDipGUIFolder.add( strikeAndDipProps, 'Strike', 0, 360 );
+strikeAndDipGUIFolder.add( strikeAndDipProps, 'Dip', 0, 90 );
+
+// Set view controls
+let viewControls =  {
+  get 'Transparent'() {return transparent},
+  set 'Transparent' (value) {
+    transparent = value;
+    if (transparent) {
+      let coveredFaces = scene.getObjectByName('coveredFaces');
+      scene.remove( coveredFaces );
+    } else {
+      clipCube.coverFaces();
+    }
+  },
+  'Spin Camera': spinCamera
+}
+viewControlsGUIFolder.add( viewControls, 'Transparent');
+// viewControlsGUIFolder.add( viewControls, 'Spin Camera');
+
 
