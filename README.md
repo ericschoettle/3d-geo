@@ -21,13 +21,6 @@
     * Advanced: Move text in a circle based on dip
     * Advanced: Move symbol to the middle of a bed. Or perhaps a random spot on the diagram?
 
-  * Add logic for quadrants vs azimuth
-
-  * Adding sides
-    * Do I need to put in a normal?
-    * Is there another reason the sides wouldn't be displaying?
-    * Figure out how to deal with top and bottom - do I want to force it into a cube, or pick a plane to have it cut on?
-    * Add wireframe
 
   * STRETCH - Add compass that sits flat (stretch: user can click on compass to rotate it two ways against surface, changes color when flat)
   * STRETCH - add ability to use compass on underside of rock
