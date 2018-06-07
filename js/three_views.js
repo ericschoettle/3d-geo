@@ -1,7 +1,7 @@
 // Sets up the object and three views: a block diagram on the corner, a map view, and a cross section view.
 
 // Initialize strike and dip
-let strike = 20;
+let strike = 50;
 let dip = 30;
 
 // Set view defaults
@@ -10,19 +10,21 @@ let spinCamera = false;
 
 // Set bed parameters
 let bedThickness = .25;
-let numberOfBeds = 14;
+let numberOfBeds = 16;
 
 // Declare variables for later use
 let container;
 let scene, renderer;
 let mesh, light;
 let windowWidth, windowHeight;
+
+console.log(window.innerWidth);
 let views = [
   // Block Diagram camera
   {
     left: 0,
     top: 0,
-    width: 0.5,
+    width: 1.0,
     height: 1.0,
     background: new THREE.Color("#3d3d3d"),
     camera: new THREE.PerspectiveCamera( 20 , window.innerWidth / window.innerHeight, 0.1, 1000 ),
@@ -30,7 +32,7 @@ let views = [
   },
   // Cross section Camera
   {
-    left: 0.5,
+    left: 1.0,
     top: 0.5,
     width: 0.5,
     height: 0.5,
@@ -40,8 +42,8 @@ let views = [
   },
   // Map View Camera
   {
-    left: 0.5,
-    top: 0,
+    left: 1.0,
+    top: 0.0,
     width: 0.5,
     height: 0.5,
     background: new THREE.Color("#3d3d3d"),
@@ -419,9 +421,9 @@ function init() {
   }
 
   let canvas = document.createElement( 'canvas' );
-  canvas.width = 128;
-  canvas.height = 128;
-  let context = canvas.getContext( '2d' ); // necessary?
+  // canvas.width = 128;
+  // canvas.height = 128;
+  // let context = canvas.getContext( '2d' ); // necessary?
 
   // Rotate Beds and add
   beds.rotation.y = Math.PI/180 * strike
@@ -449,8 +451,8 @@ function init() {
   text1.style.height = 100;
   text1.style.color = "white";
   text1.innerHTML = "Block Diagram";
-  text1.style.top = '12%';
-  text1.style.left = '20%';
+  text1.style.top = '92%';
+  text1.style.left = `${window.innerHeight/2.2}px`;
   document.body.appendChild(text1);
 
   let text2 = document.createElement('div');
@@ -459,8 +461,8 @@ function init() {
   text2.style.height = 100;
   text2.style.color = "white";
   text2.innerHTML = "Map View";
-  text2.style.top = '8%';
-  text2.style.left = '72%';
+  text2.style.top = '40%';
+  text2.style.left = `${window.innerHeight*1.25}px`;
   document.body.appendChild(text2);
 
   let text3 = document.createElement('div');
@@ -469,15 +471,15 @@ function init() {
   text3.style.height = 100;
   text3.style.color = "white";
   text3.innerHTML = "Cross Section";
-  text3.style.top = '58%';
-  text3.style.left = '72%';
+  text3.style.top = '90%';
+  text3.style.left = `${window.innerHeight*1.25}px`;
   document.body.appendChild(text3);
 }
 function updateSize() {
-  if ( windowWidth != window.innerWidth || windowHeight != window.innerHeight ) {
-    windowWidth  = window.innerWidth;
+  if ( windowHeight != window.innerHeight ) { // windowWidth != window.innerWidth || 
+    // windowWidth  = window.innerWidth;
     windowHeight = window.innerHeight;
-    renderer.setSize ( windowWidth, windowHeight );
+    renderer.setSize ( windowHeight*1.49, windowHeight );// Using height to lock aspect ratio so that angles are correct on map and x-section view. 
   }
 }
 function animate() {
@@ -493,9 +495,9 @@ function render() {
     // 	let controls = new THREE.OrbitControls(camera);
     // 	scene.userData.controls = controls;
     // }
-    let left   = Math.floor( windowWidth  * view.left );
+    let left   = Math.floor( windowHeight  * view.left );
     let top    = Math.floor( windowHeight * view.top );
-    let width  = Math.floor( windowWidth  * view.width );
+    let width  = Math.floor( windowHeight  * view.width );
     let height = Math.floor( windowHeight * view.height );
     renderer.setViewport( left, top, width, height );
     renderer.setScissor( left, top, width, height );
