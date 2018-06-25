@@ -81,6 +81,7 @@ for (let i = 0; i < numberOfBeds; i++) {
   beds.add( bed )
 }
 
+// Holds a cube made out of clipping planes, identifying information, and functions that apply to the whole cube. 
 class ClipCube {
   constructor(edgeLength) {
     //Edge length of 2 gives faces at 1, -1, respectively, with cube centered on (0,0,0,)
@@ -126,7 +127,7 @@ class ClipCube {
     return faces;
   }
 
-
+  // When beds are clipped, their hollowness is revealed; To see the cube, rather than what is left, coverFaces makes shapes to cover the faces of the cube. 
   coverFaces () {
     let coveredFaces = new THREE.Group();
     this.faces.forEach((face) => {
@@ -191,6 +192,7 @@ function getVectorDirection(vector) {
   }
 }
 
+// A face is one side on a cube
 class Face {
   constructor (faceType, normalVector) {
     this.faceType = faceType;

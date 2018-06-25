@@ -1,6 +1,6 @@
 # For you:
 
-  Check it out! = ericschoettle.github.io/3d-geo/
+  Check it out! https://bit.ly/2sG101g
 
   This is an app to help visualize strike and dip, the standard way that geologists record the orientation of planes in space. Use the controls on the right to play around!
 
